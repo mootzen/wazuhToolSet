@@ -29,6 +29,16 @@ check if id is free or already in use
 chmod +x check_rule-id.sh
 ```
 #### Usage 
+
+##### Single ID
 ```
 ./check_rule-id.sh "rule.id"
+```
+##### ID-Range
+```
+./check_rule-id.sh start-id-end.id
+```
+##### Example: Range
+```
+./check_rule-id.sh 10000-10010
 ```
