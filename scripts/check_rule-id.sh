@@ -18,7 +18,7 @@ fi
 # Single rule ID check
 if [[ "$1" =~ ^[0-9]+$ ]]; then
     if rule_exists "$1"; then
-        echo "Rule ID $1 is already in use."
+        echo "Rule ID $1 is already in use. Found in: $file_path"
     else
         echo "Rule ID $1 is free."
     fi
@@ -35,9 +35,12 @@ if [[ "$1" =~ ^([0-9]+)-([0-9]+)$ ]]; then
         exit 1
     fi
 
-    echo "Checking free rule IDs between $start_id and $end_id..."
+    echo "Checking rule IDs between $start_id and $end_id..."
     for (( id=start_id; id<=end_id; id++ )); do
-        if ! rule_exists "$id"; then
+        file_path=$(rule_exists "$id")
+        if [[ $? -eq 0 ]]; then
+            echo "Rule ID $id is in use. Found in: $file_path"
+        else
             echo "Rule ID $id is free."
         fi
     done
