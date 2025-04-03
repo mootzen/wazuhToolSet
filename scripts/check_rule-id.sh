@@ -1,12 +1,28 @@
 #!/bin/bash
 
-# Path to Wazuh rules directory
+# Paths to Wazuh rules
 RULES_DIR="/var/ossec/ruleset/rules"
+LOCAL_RULES="/var/ossec/etc/rules/local_rules.xml"
 
-# Function to check if rule ID exists
+# Function to check if rule ID exists and return the file
 rule_exists() {
-    grep -r "<rule id=\"$1\"" $RULES_DIR >/dev/null 2>&1
-    return $?
+    local id="$1"
+    local file
+
+    # Search in main rules directory and local_rules.xml
+    file=$(grep -rl "<rule id=\"$id\"" "$RULES_DIR" 2>/dev/null)
+    if [[ -z "$file" && -f "$LOCAL_RULES" ]]; then
+        if grep -q "<rule id=\"$id\"" "$LOCAL_RULES"; then
+            file="$LOCAL_RULES"
+        fi
+    fi
+
+    if [[ -n "$file" ]]; then
+        echo "$file"
+        return 0
+    else
+        return 1
+    fi
 }
 
 # Check input arguments
@@ -17,7 +33,8 @@ fi
 
 # Single rule ID check
 if [[ "$1" =~ ^[0-9]+$ ]]; then
-    if rule_exists "$1"; then
+    file_path=$(rule_exists "$1")
+    if [[ $? -eq 0 ]]; then
         echo "Rule ID $1 is already in use. Found in: $file_path"
     else
         echo "Rule ID $1 is free."
