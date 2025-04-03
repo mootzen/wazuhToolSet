@@ -42,3 +42,15 @@ chmod +x check_rule-id.sh
 ```
 ./check_rule-id.sh 10000-10010
 ```
+### map_rules.sh
+
+creates a table with all used rule.id's, rule.description and rule filepath and saves it to a txt which then can be grepped or exported
+
+#### Make script executable
+```
+chmod +x map_rules.sh
+```
+#### Usage 
+```
+./map_rules.sh
+```
