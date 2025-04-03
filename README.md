@@ -20,3 +20,15 @@ chmod +x rename_xml.sh
 ```
 ./rename_xml.sh "sysmon" "/var/ossec/etc/rules/" "/var/ossec/ruleset/rules" 
 ```
+### check_rule-id.sh
+
+check if id is free or already in use
+
+#### Make script executable
+```
+chmod +x check_rule-id.sh
+```
+#### Usage 
+```
+./check_rule-id.sh "rule.id"
+```
