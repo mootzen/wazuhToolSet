@@ -7,6 +7,7 @@ Collection of scripts, tools, custom rules and decoders I personally created for
 ### rename_xml.sh
 
 Renames xml-files in up to two directories by matching against keyword. non-recursive
+Useful for disabling rulefiles in bulk
 
 #### Make script executable
 ```
