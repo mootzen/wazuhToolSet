@@ -1,0 +1,21 @@
+<group name="docker-service,">
+  <!-- rule for grouped logs -->
+  <rule id="111700" level="0">
+    <decoded_as>docker-service</decoded_as>
+    <description>Journald logs for Docker.</description>
+  </rule>
+
+  <!-- container start -->
+  <rule id="111701" level="8">
+    <if_sid>111700</if_sid>
+    <match>start worker processes</match>
+    <description>Docker with container ID $(program_name) just launched.</description>
+  </rule>
+
+  <!-- stop -->
+  <rule id="111702" level="12">
+    <if_sid>111700</if_sid>
+    <match>gracefully shutting down</match>
+    <description>Docker with container ID $(program_name) just shut down.</description>
+  </rule>
+</group>
