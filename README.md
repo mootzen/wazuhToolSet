@@ -36,7 +36,7 @@ chmod +x check_rule-id.sh
 ```
 ##### ID-Range
 ```
-./check_rule-id.sh start-id-end.id
+./check_rule-id.sh start.id-end.id
 ```
 ##### Example: Range
 ```
