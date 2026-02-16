@@ -1,69 +1,84 @@
 #!/bin/bash
+set -euo pipefail
 
-# Paths to Wazuh rules
 RULES_DIR="/var/ossec/ruleset/rules"
 LOCAL_RULES="/var/ossec/etc/rules/local_rules.xml"
 
-# Function to check if rule ID exists and return the file
+# Prebuild an index of all XML files we should scan (follows symlinks).
+# -L: follow symlinks
+# -type f: only files
+# -iname '*.xml': any case
+mapfile -t XML_FILES < <(
+  find -L "$RULES_DIR" -type f -iname '*.xml' -print 2>/dev/null | sort
+)
+
+# Add local_rules.xml if present (avoid duplicates)
+if [[ -f "$LOCAL_RULES" ]]; then
+  XML_FILES+=("$LOCAL_RULES")
+fi
+
+# Function to check if rule ID exists and return the first file that contains it
 rule_exists() {
-    local id="$1"
-    local file
+  local id="$1"
+  local f
 
-    # Search in main rules directory and local_rules.xml
-    file=$(grep -rl "<rule id=\"$id\"" "$RULES_DIR" 2>/dev/null)
-    if [[ -z "$file" && -f "$LOCAL_RULES" ]]; then
-        if grep -q "<rule id=\"$id\"" "$LOCAL_RULES"; then
-            file="$LOCAL_RULES"
-        fi
-    fi
+  # Match:
+  #   <rule id="123"
+  #   <rule    id = "123"
+  #   <rule id='123'
+  # and allow other attrs before/after id=...
+  local re='<rule[^>]*[[:space:]]id[[:space:]]*=[[:space:]]*["'\'']'"$id"'["'\'']'
 
-    if [[ -n "$file" ]]; then
-        echo "$file"
-        return 0
-    else
-        return 1
+  for f in "${XML_FILES[@]}"; do
+    [[ -r "$f" ]] || continue
+    if grep -qE "$re" "$f"; then
+      echo "$f"
+      return 0
     fi
+  done
+
+  return 1
 }
 
-# Check input arguments
-if [[ -z "$1" ]]; then
-    echo "Usage: $0 <rule_id> or $0 <start_id-end_id>"
-    exit 1
+usage() {
+  echo "Usage: $0 <rule_id> or $0 <start_id-end_id>"
+}
+
+if [[ $# -lt 1 || -z "${1:-}" ]]; then
+  usage
+  exit 1
 fi
 
 # Single rule ID check
 if [[ "$1" =~ ^[0-9]+$ ]]; then
-    file_path=$(rule_exists "$1")
-    if [[ $? -eq 0 ]]; then
-        echo "Rule ID $1 is already in use. Found in: $file_path"
-    else
-        echo "Rule ID $1 is free."
-    fi
-    exit 0
+  if file_path=$(rule_exists "$1"); then
+    echo "Rule ID $1 is already in use. Found in: $file_path"
+  else
+    echo "Rule ID $1 is free."
+  fi
+  exit 0
 fi
 
 # Range check
 if [[ "$1" =~ ^([0-9]+)-([0-9]+)$ ]]; then
-    start_id=${BASH_REMATCH[1]}
-    end_id=${BASH_REMATCH[2]}
+  start_id=${BASH_REMATCH[1]}
+  end_id=${BASH_REMATCH[2]}
 
-    if (( start_id > end_id )); then
-        echo "Invalid range: Start ID is greater than End ID."
-        exit 1
+  if (( start_id > end_id )); then
+    echo "Invalid range: Start ID is greater than End ID."
+    exit 1
+  fi
+
+  echo "Checking rule IDs between $start_id and $end_id..."
+  for (( id=start_id; id<=end_id; id++ )); do
+    if file_path=$(rule_exists "$id"); then
+      echo "Rule ID $id is in use. Found in: $file_path"
+    else
+      echo "Rule ID $id is free."
     fi
-
-    echo "Checking rule IDs between $start_id and $end_id..."
-    for (( id=start_id; id<=end_id; id++ )); do
-        file_path=$(rule_exists "$id")
-        if [[ $? -eq 0 ]]; then
-            echo "Rule ID $id is in use. Found in: $file_path"
-        else
-            echo "Rule ID $id is free."
-        fi
-    done
-    exit 0
+  done
+  exit 0
 fi
 
-# Invalid input
 echo "Invalid input format. Use a single rule ID or a range (e.g., 100000-100010)."
 exit 1
