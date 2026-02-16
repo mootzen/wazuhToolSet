@@ -2,20 +2,28 @@
 set -euo pipefail
 
 RULES_DIR="/var/ossec/ruleset/rules"
+ETC_RULES_DIR="/var/ossec/etc/rules"
 LOCAL_RULES="/var/ossec/etc/rules/local_rules.xml"
 
-# Prebuild an index of all XML files we should scan (follows symlinks).
+# Build an index of all XML files we should scan (follows symlinks).
 # -L: follow symlinks
 # -type f: only files
 # -iname '*.xml': any case
 mapfile -t XML_FILES < <(
-  find -L "$RULES_DIR" -type f -iname '*.xml' -print 2>/dev/null | sort
+  {
+    find -L "$RULES_DIR" -type f -iname '*.xml' -print 2>/dev/null
+    find -L "$ETC_RULES_DIR" -type f -iname '*.xml' -print 2>/dev/null
+  } | sort -u
 )
 
-# Add local_rules.xml if present (avoid duplicates)
+# Ensure local_rules.xml is included (even if find missed it for any reason)
 if [[ -f "$LOCAL_RULES" ]]; then
   XML_FILES+=("$LOCAL_RULES")
 fi
+
+usage() {
+  echo "Usage: $0 <rule_id> or $0 <start_id-end_id>"
+}
 
 # Function to check if rule ID exists and return the first file that contains it
 rule_exists() {
@@ -38,10 +46,6 @@ rule_exists() {
   done
 
   return 1
-}
-
-usage() {
-  echo "Usage: $0 <rule_id> or $0 <start_id-end_id>"
 }
 
 if [[ $# -lt 1 || -z "${1:-}" ]]; then
